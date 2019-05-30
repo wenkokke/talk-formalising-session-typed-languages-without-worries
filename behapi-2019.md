@@ -13,12 +13,15 @@
 
 ## Why are we sad?
 
-<br />
-
 - formalising programming languages is hard
 - _shakes fist at the abstract concept of binding_ :triumph:
 - lots of tools make it easier (ACMM, Ott, Autosubst, N&K)
 - none of those tools work for linear type systems! :weary:
+
+<br />
+
+- formalising evaluation is tricky
+- formalising _concurrent_ evaluation is really hard :sob:
 
 <!-- 
 what a lot of you might emphathize with is that it 
@@ -38,6 +41,7 @@ I am formalising GV[^1]
 
 - a session-typed functional language
 - a lambda calculus with channels, send, and receive
+- reduction semantics up to structural congruence
 - progress, preservation, deadlock-freedom
 
 [^1]: Wadler, 2014. _Propositions as sessions_
@@ -80,27 +84,6 @@ I am formalising GV[^1]
 
 ## Formalising linearity w/ explicit exchange
 
-```haskell
-data _⊢_ : Prectxt → Type → Set where
-
-  var :              exc : γ ⊢ A   γ ↔ δ
-        ---------          -------------
-        ∅ , A ⊢ A          δ ⊢ M ∶ A
-
-
-  ƛ_  : γ , A ⊢ B    _·_ : γ ⊢ M ∶ A ⊸ B   δ ⊢ A
-        ---------       ----------------------
-        γ ⊢ A ⊸ B       γ + δ ⊢ M ∶ B
-
--- N.B.
--- Prectxt is a list of types (∅, _,_), _+_ appends
--- lists, and _↔_ is a bijection between lists
-```
-
----
-
-## Formalising linearity w/ explicit exchange
-
 - no variables, no problems, no worries!
 - we only have to explicitly manipulate the context!
 
@@ -111,7 +94,7 @@ data _⊢_ : Prectxt → Type → Set where
   swap = λ p → case p of (x,y) → (y,x)
 
   -- what we write:
-  swap = ƛ (case (exc {...} (pair var var)))
+  swap = ƛ (case var (exc {...} (pair var var)))
 ```
 
 ---
@@ -266,25 +249,6 @@ _ = ∅ , 1 ∙ A , 0 ∙ B , 0 ∙ C
 ## Formalising languages following QTT
 
 ```haskell
-data _⊢_ : {γ} → Ctxt γ → Type → Set where
-
-  `_  : (x : γ ∋ A)      -- N.B.
-        --------------   -- 1 for x, 0 for each
-        identity x ⊢ A   -- other variable in γ
-
-  ƛ_  : Γ , 1 ∙ A ⊢ B    _·_ : Γ ⊢ A ⊸ B   Δ ⊢ A
-        -------------          -----------------
-        Γ ⊢ A ⊸ B              Γ + Δ ⊢ B
-
--- N.B.
--- Γ and Δ both annotate γ; + is vector addition
-```
-
----
-
-## Formalising languages following QTT
-
-```haskell
 
 _ : ∅ , 1 ∙ A , 0 ∙ A ⊸ A ⊢ A
 
@@ -305,6 +269,25 @@ _ = (` Z) · (` S Z) · (` S Z)
 
 ## Formalising languages following QTT
 
+```haskell
+data _⊢_ : {γ} → Ctxt γ → Type → Set where
+
+  `_  : (x : γ ∋ A)      -- N.B.
+        --------------   -- 1 for x, 0 for each
+        identity x ⊢ A   -- other variable in γ
+
+  ƛ_  : Γ , 1 ∙ A ⊢ B    _·_ : Γ ⊢ A ⊸ B   Δ ⊢ A
+        -------------          -----------------
+        Γ ⊢ A ⊸ B              Γ + Δ ⊢ B
+
+-- N.B.
+-- Γ and Δ both annotate γ; + is vector addition
+```
+
+---
+
+## Formalising languages following QTT
+
 <br />
 <br />
 
@@ -312,6 +295,24 @@ _ = (` Z) · (` S Z) · (` S Z)
 > Formalisation following QTT is *still* lightweight and readable.[^6]
 
 [^6]: Each proof fits on a slide, and we can teach it to undergraduate students. They get a little bit sadder than before.
+
+---
+
+## Formalising languages following QTT
+
+```haskell
+subst : (σ : ∀ {A} → (x : γ ∋ A) → Ξ x ⊢ A)
+
+      → Γ ⊢ B       -- Ξ is a matrix listing,
+        ---------   -- for each variable x,
+      → Γ * Ξ ⊢ B   -- the resources used by (σ x)
+
+subst σ (` x)   = rewr lem-` (σ x)
+
+subst σ (ƛ N)   = ƛ (rewr lem-ƛ (subst (exts σ) N))
+
+subst σ (L · M) = rewr lem-· (subst σ L · subst σ M)
+```
 
 ---
 
@@ -343,6 +344,8 @@ _ = (` Z) · (` S Z)
 - formalising _linearly typed_ programming languages is harder 
 - quantitative type theory helps
 
+<!-- mention Wojciech Nawrocki -->
+
 ---
 
 # Act ⟨Bonus⟩.
@@ -350,7 +353,17 @@ _ = (` Z) · (` S Z)
 
 ---
 
-![](speculation-time.jpg**
+![](speculation-time.jpg)
+
+---
+
+## Formalising concurrent evaluation
+
+<br />
+<br />
+
+> **Take Home Message**:
+> Encode the invariants you need in your proof in your data types.
 
 ---
 
@@ -462,10 +475,15 @@ r = • letpair (recv (chan⁻ Z))
 
 ---
 
-## Formalising concurrent evaluation
+[.footer: (Hiya! I'm Wen, and if you'd like to, you can find my stuff at <https://wenkokke.github.io> :rainbow:)]
+
+## Conclusions
+
+- formalising programming languages is hard
+- formalising _linearly typed_ programming languages is harder 
+- formalising concurrent evaluation is _really hard_
 
 <br />
-<br />
 
-> **Take Home Message**:
-> Encode the invariants you need in your proof in your data types.
+- quantitative type theory helps
+- we can extend QTT to cover duality (probably)
